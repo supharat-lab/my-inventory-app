@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import ReactDOM from 'react-dom/client';
 import { 
   Package, 
   Plus, 
@@ -19,7 +18,7 @@ const INITIAL_PRODUCTS = [
   { id: '8', name: 'Seat Valve', partNo: 'V170 BN', brand: 'Versamatic', initial: 8, reorderPoint: 4 }
 ];
 
-function App() {
+export default function App() {
   const [products, setProducts] = useState(() => {
     const saved = localStorage.getItem('inventory_products');
     return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
@@ -348,5 +347,3 @@ function App() {
     </div>
   );
 }
-// สั่งให้ React แสดงผลลงใน id="root" ของ index.html
-
