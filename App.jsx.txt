@@ -348,6 +348,5 @@ function App() {
     </div>
   );
 }
-
 // สั่งให้ React แสดงผลลงใน id="root" ของ index.html
 
