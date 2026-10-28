@@ -350,5 +350,4 @@ function App() {
 }
 
 // สั่งให้ React แสดงผลลงใน id="root" ของ index.html
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+
