@@ -1,0 +1,354 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Package, 
+  ShoppingCart, 
+  TrendingUp, 
+  AlertTriangle, 
+  Plus, 
+  Minus, 
+  Download, 
+  Search, 
+  RefreshCw,
+  FileSpreadsheet
+} from 'lucide-react';
+
+const INITIAL_PRODUCTS = [
+  { id: '1', name: 'Shaft', partNo: '685.V001.120', brand: 'Versamatic', initial: 0, reorderPoint: 0 },
+  { id: '2', name: 'Pilot Valve Sleeve Asy', partNo: '755.V004.000', brand: 'Versamatic', initial: 4, reorderPoint: 2 },
+  { id: '3', name: 'pilot sleeve', partNo: '755.V002.000', brand: 'Versamatic', initial: 13, reorderPoint: 6 },
+  { id: '4', name: 'pilot spool', partNo: '775.V002.000', brand: 'Versamatic', initial: 13, reorderPoint: 6 },
+  { id: '5', name: 'Pilot spool ASY', partNo: '775.V005.000', brand: 'Versamatic', initial: 0, reorderPoint: 0 },
+  { id: '6', name: 'pilot spool', partNo: '775.V006.000', brand: 'Versamatic', initial: 2, reorderPoint: 1 },
+  { id: '7', name: 'Air Valve Assembly', partNo: '031.V002.156', brand: 'Versamatic', initial: 0, reorderPoint: 0 },
+  { id: '8', name: 'Seat Valve', partNo: 'V170 BN', brand: 'Versamatic', initial: 8, reorderPoint: 4 }
+];
+
+export default function App() {
+  const [products, setProducts] = useState(() => {
+    const saved = localStorage.getItem('inventory_products');
+    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+  });
+
+  const [purchases, setPurchases] = useState(() => {
+    const saved = localStorage.getItem('inventory_purchases');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [sales, setSales] = useState(() => {
+    const saved = localStorage.getItem('inventory_sales');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [activeTab, setActiveTab] = useState('summary');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const [buyForm, setBuyForm] = useState({
+    date: new Date().toISOString().split('T')[0],
+    partNo: '',
+    qty: ''
+  });
+
+  const [sellForm, setSellForm] = useState({
+    date: new Date().toISOString().split('T')[0],
+    partNo: '',
+    qty: ''
+  });
+
+  useEffect(() => {
+    localStorage.setItem('inventory_products', JSON.stringify(products));
+  }, [products]);
+
+  useEffect(() => {
+    localStorage.setItem('inventory_purchases', JSON.stringify(purchases));
+  }, [purchases]);
+
+  useEffect(() => {
+    localStorage.setItem('inventory_sales', JSON.stringify(sales));
+  }, [sales]);
+
+  const calculateStock = (partNo, initial) => {
+    const totalBuy = purchases
+      .filter(p => p.partNo === partNo)
+      .reduce((sum, p) => sum + Number(p.qty), 0);
+    const totalSell = sales
+      .filter(s => s.partNo === partNo)
+      .reduce((sum, s) => sum + Number(s.qty), 0);
+    
+    const current = Number(initial) + totalBuy - totalSell;
+    return { totalBuy, totalSell, current };
+  };
+
+  const handleBuySubmit = (e) => {
+    e.preventDefault();
+    if (!buyForm.partNo || !buyForm.qty || buyForm.qty <= 0) return;
+
+    const newPurchase = {
+      id: Date.now().toString(),
+      date: buyForm.date,
+      partNo: buyForm.partNo,
+      qty: Number(buyForm.qty)
+    };
+
+    setPurchases([newPurchase, ...purchases]);
+    setBuyForm({ ...buyForm, qty: '' });
+    alert('บันทึกการซื้อสำเร็จ!');
+  };
+
+  const handleSellSubmit = (e) => {
+    e.preventDefault();
+    if (!sellForm.partNo || !sellForm.qty || sellForm.qty <= 0) return;
+
+    const product = products.find(p => p.partNo === sellForm.partNo);
+    if (product) {
+      const { current } = calculateStock(product.partNo, product.initial);
+      if (Number(sellForm.qty) > current) {
+        if (!confirm(`สินค้าในสต๊อกมีเพียง ${current} ชิ้น คุณต้องการบันทึกการขายต่อหรือไม่?`)) {
+          return;
+        }
+      }
+    }
+
+    const newSell = {
+      id: Date.now().toString(),
+      date: sellForm.date,
+      partNo: sellForm.partNo,
+      qty: Number(sellForm.qty)
+    };
+
+    setSales([newSell, ...sales]);
+    setSellForm({ ...sellForm, qty: '' });
+    alert('บันทึกการขายสำเร็จ!');
+  };
+
+  const filteredProducts = products.filter(p => 
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.partNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.brand.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
+      <header className="bg-slate-900 text-white shadow-lg sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
+          <div className="flex items-center space-x-3">
+            <Package className="w-8 h-8 text-blue-400" />
+            <div>
+              <h1 className="text-xl font-bold">ระบบบันทึกสินค้าในสต๊อก</h1>
+              <p className="text-xs text-slate-400">Inventory Management System</p>
+            </div>
+          </div>
+
+          <div className="flex space-x-1 bg-slate-800 p-1 rounded-lg">
+            <button
+              onClick={() => setActiveTab('summary')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'summary' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              สรุปสต๊อก (Sum)
+            </button>
+            <button
+              onClick={() => setActiveTab('buy')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'buy' ? 'bg-green-600 text-white' : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              บันทึกซื้อเข้า
+            </button>
+            <button
+              onClick={() => setActiveTab('sell')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'sell' ? 'bg-amber-600 text-white' : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              บันทึกขายออก
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 py-6">
+        {activeTab === 'summary' && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap justify-between items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+              <div className="relative flex-1 min-w-[240px]">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="ค้นหาชื่อสินค้า, Parts No. หรือ Brand..."
+                  className="pl-9 pr-4 py-2 w-full border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-slate-100 border-b border-slate-200 text-slate-700 font-semibold">
+                      <th className="p-3">Product</th>
+                      <th className="p-3">Parts No.</th>
+                      <th className="p-3">Brand</th>
+                      <th className="p-3 text-center">ตั้งต้น</th>
+                      <th className="p-3 text-center text-green-600">ซื้อเพิ่ม</th>
+                      <th className="p-3 text-center text-amber-600">ขายออก</th>
+                      <th className="p-3 text-center font-bold">คงเหลือล่าสุด</th>
+                      <th className="p-3 text-center">จุดสั่งซื้อเพิ่ม</th>
+                      <th className="p-3 text-center">สถานะ</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {filteredProducts.map((p) => {
+                      const { totalBuy, totalSell, current } = calculateStock(p.partNo, p.initial);
+                      const needsReorder = current < p.reorderPoint;
+
+                      return (
+                        <tr key={p.id} className="hover:bg-slate-50">
+                          <td className="p-3 font-medium">{p.name}</td>
+                          <td className="p-3 font-mono text-slate-600">{p.partNo}</td>
+                          <td className="p-3 text-slate-500">{p.brand}</td>
+                          <td className="p-3 text-center">{p.initial}</td>
+                          <td className="p-3 text-center text-green-600 font-semibold">{totalBuy}</td>
+                          <td className="p-3 text-center text-amber-600 font-semibold">{totalSell}</td>
+                          <td className="p-3 text-center font-bold text-slate-900">{current}</td>
+                          <td className="p-3 text-center text-slate-500">{p.reorderPoint}</td>
+                          <td className="p-3 text-center">
+                            {needsReorder ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
+                                <AlertTriangle className="w-3.5 h-3.5" /> ต้องสั่งเพิ่ม
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                                ปกติ
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'buy' && (
+          <div className="max-w-xl mx-auto bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <Plus className="w-5 h-5 text-green-600" /> บันทึกการซื้อสินค้าเข้า (Purchase)
+            </h2>
+            <form onSubmit={handleBuySubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">วันที่ซื้อ</label>
+                <input
+                  type="date"
+                  required
+                  className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500"
+                  value={buyForm.date}
+                  onChange={(e) => setBuyForm({ ...buyForm, date: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">เลือกรหัสสินค้า (Parts No.)</label>
+                <select
+                  required
+                  className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500"
+                  value={buyForm.partNo}
+                  onChange={(e) => setBuyForm({ ...buyForm, partNo: e.target.value })}
+                >
+                  <option value="">-- เลือกรหัสสินค้า --</option>
+                  {products.map(p => (
+                    <option key={p.id} value={p.partNo}>
+                      {p.partNo} - {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">จำนวนที่ซื้อ (Qty of purchase)</label>
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  placeholder="กรอกจำนวน"
+                  className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-green-500"
+                  value={buyForm.qty}
+                  onChange={(e) => setBuyForm({ ...buyForm, qty: e.target.value })}
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 rounded-lg transition-colors"
+              >
+                บันทึกการซื้อเข้า
+              </button>
+            </form>
+          </div>
+        )}
+
+        {activeTab === 'sell' && (
+          <div className="max-w-xl mx-auto bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <Minus className="w-5 h-5 text-amber-600" /> บันทึกการขายสินค้าออก (Sell)
+            </h2>
+            <form onSubmit={handleSellSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">วันที่ขาย</label>
+                <input
+                  type="date"
+                  required
+                  className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500"
+                  value={sellForm.date}
+                  onChange={(e) => setSellForm({ ...sellForm, date: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">เลือกรหัสสินค้า (Parts No.)</label>
+                <select
+                  required
+                  className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500"
+                  value={sellForm.partNo}
+                  onChange={(e) => setSellForm({ ...sellForm, partNo: e.target.value })}
+                >
+                  <option value="">-- เลือกรหัสสินค้า --</option>
+                  {products.map(p => (
+                    <option key={p.id} value={p.partNo}>
+                      {p.partNo} - {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">จำนวนที่ขาย (Qty of Sell)</label>
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  placeholder="กรอกจำนวน"
+                  className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500"
+                  value={sellForm.qty}
+                  onChange={(e) => setSellForm({ ...sellForm, qty: e.target.value })}
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-2.5 rounded-lg transition-colors"
+              >
+                บันทึกการขายออก
+              </button>
+            </form>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
