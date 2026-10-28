@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom/client';
 import { 
   Package, 
-  ShoppingCart, 
-  TrendingUp, 
-  AlertTriangle, 
   Plus, 
   Minus, 
-  Download, 
   Search, 
-  RefreshCw,
-  FileSpreadsheet
+  AlertTriangle 
 } from 'lucide-react';
 
 const INITIAL_PRODUCTS = [
@@ -23,7 +19,7 @@ const INITIAL_PRODUCTS = [
   { id: '8', name: 'Seat Valve', partNo: 'V170 BN', brand: 'Versamatic', initial: 8, reorderPoint: 4 }
 ];
 
-export default function App() {
+function App() {
   const [products, setProducts] = useState(() => {
     const saved = localStorage.getItem('inventory_products');
     return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
@@ -352,3 +348,7 @@ export default function App() {
     </div>
   );
 }
+
+// สั่งให้ React แสดงผลลงใน id="root" ของ index.html
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
